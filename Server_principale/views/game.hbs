@@ -1,0 +1,44 @@
+<div class="container mt-4">
+    <div class="text-center text-light">
+        <h1 class="mb-4">Stanza: {{roomCode}}</h1>
+        <p class="lead">Frase divertente: "{{phrase}}"</p>
+    </div>
+
+    <!-- Sezione Immagini -->
+    <div class="row" id="imageContainer">
+        {{#each images}}
+            <div class="col-lg-3 col-md-4 col-sm-6 col-12 mb-4">
+                <div class="card bg-dark text-light shadow-sm">
+                    <img src="{{this}}" class="card-img-top" alt="Immagine {{@index}}">
+                    <div class="card-body text-center">
+                        <button class="btn btn-outline-primary w-100 select-card" data-image="{{this}}">Seleziona</button>
+                    </div>
+                </div>
+            </div>
+        {{/each}}
+    </div>
+
+    <!-- Sezione votazioni (visibile dopo la scelta delle carte) -->
+    <div id="vote-section" class="mt-5 text-light" style="display: none;">
+        <h3 class="text-center">Vota la carta migliore!</h3>
+        <div class="row">
+            {{#each selectedCards}}
+                <div class="col-lg-3 col-md-4 col-sm-6 col-12 mb-4">
+                    <div class="card bg-dark text-light shadow-sm">
+                        <img src="{{this}}" class="card-img-top" alt="Immagine selezionata da un giocatore">
+                        <div class="card-body text-center">
+                            <button class="btn btn-outline-success w-100 vote-card" data-image="{{this}}">Vota</button>
+                        </div>
+                    </div>
+                </div>
+            {{/each}}
+        </div>
+    </div>
+
+    <!-- Sezione fine round -->
+    <div id="end-round" class="mt-5 text-center text-light" style="display: none;">
+        <h3>Round terminato!</h3>
+        <p>Il vincitore è: <span id="winner"></span></p>
+        <button class="btn btn-primary" id="next-round">Prossimo Round</button>
+    </div>
+</div>
