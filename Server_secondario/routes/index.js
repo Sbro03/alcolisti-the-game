@@ -1,9 +1,11 @@
 var express = require('express');
 var router = express.Router();
+var fs = require('fs');
+var axios = require('axios');
 
-/* GET home page. */
-router.get('/', function(req, res, next) {
-  res.render('index', { title: 'Express' });
-});
+router.get("/images/:number", function(req, res) {
+  const numPhotos = req.params.number;
+
+})
 
 module.exports = router;
