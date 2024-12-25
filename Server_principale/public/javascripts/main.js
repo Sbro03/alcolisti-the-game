@@ -54,7 +54,7 @@ socket.on('roomData', (data) => {
 });
 
 function showPhrase(){
-    phrase.innerHTML = "Bello figo";
+    phrase.innerHTML = "UAAAAAA";
 }
 
 function addImage(image,name, index){
