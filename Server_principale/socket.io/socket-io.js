@@ -6,7 +6,7 @@ exports.init = function(io) {
         console.log(`Nuovo client connesso: ${socket.id}`);
 
         // Un giocatore si unisce a una stanza
-        socket.on('joinRoom', ({ roomCode, playerName }) => {
+        socket.on('joinRoom', (roomCode, playerName) => {
             if (!rooms[roomCode]) {
                 // Se la stanza non esiste, la creiamo
                 rooms[roomCode] = {
@@ -38,7 +38,8 @@ exports.init = function(io) {
         });
 
         // Un giocatore seleziona una carta
-        socket.on('cardSelected', ({ roomCode, image }) => {
+        socket.on('cardSelected', (roomCode, image) => {
+            console.log("card selected: ", image);
             const room = rooms[roomCode];
             if (!room) return;
 

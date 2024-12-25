@@ -130,11 +130,33 @@ router.get('/room/:roomCode', (req, res) => {
 router.get('/images', async (req, res) => {
   let response = [];
   try {
-    response = await axios.get("http://localhost:3001/images/7");
-  } catch(error) {
-    console.log(error);
+    //Makes a request to the secondary server in order to take images as blob files
+    const externalResponse = await axios.get('http://localhost:3001/images/4');
+    //Every player takes tot images and this number is determined by the endpoint
+
+    //Checking the response
+    if (externalResponse.status === 200 && externalResponse.data.success) {
+      // Restituisci la lista di blob al client
+      res.status(200).json({
+        success: true,
+        images: externalResponse.data.images,
+      });
+    } else {
+      // Gestione di risposte non valide
+      res.status(500).json({
+        success: false,
+        message: 'Errore nella risposta dal server esterno',
+      });
+    }
+  } catch (error) {
+    // Gestione degli errori durante la richiesta
+    console.error('Errore:', error.message);
+
+    res.status(500).json({
+      success: false,
+      message: 'Errore durante la richiesta al server esterno',
+    });
   }
-  res.status(200).send(response);
 })
 
 module.exports = router;

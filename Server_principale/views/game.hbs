@@ -1,21 +1,11 @@
 <div class="container mt-4">
     <div class="text-center text-light">
-        <h1 class="mb-4">Stanza: {{roomCode}}</h1>
-        <p class="lead">Frase divertente: "{{phrase}}"</p>
+        <h1 class="mb-4" id="phrase"></h1>
+        <p class="lead">Stanza: {{roomCode}}</p>
     </div>
 
     <!-- Sezione Immagini -->
-    <div class="row" id="imageContainer">
-        {{#each images}}
-            <div class="col-lg-3 col-md-4 col-sm-6 col-12 mb-4">
-                <div class="card bg-dark text-light shadow-sm">
-                    <img src="{{this}}" class="card-img-top" alt="Immagine {{@index}}">
-                    <div class="card-body text-center">
-                        <button class="btn btn-outline-primary w-100 select-card" data-image="{{this}}">Seleziona</button>
-                    </div>
-                </div>
-            </div>
-        {{/each}}
+    <div class="row justify-center" id="imageContainer">
     </div>
 
     <!-- Sezione votazioni (visibile dopo la scelta delle carte) -->
@@ -41,4 +31,7 @@
         <p>Il vincitore è: <span id="winner"></span></p>
         <button class="btn btn-primary" id="next-round">Prossimo Round</button>
     </div>
+    <script>
+        window.roomCode = {{json roomCode}};
+    </script>
 </div>
