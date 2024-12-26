@@ -12,7 +12,7 @@ async function init(){
     console.log(window.roomCode);
     loginForm = document.getElementById('joinRoomForm');
     imageContainer = document.getElementById('imageContainer');
-    phrase = document.getElementById('phrase');
+    phraseElement = document.getElementById('phrase');
     if(loginForm){
         loginForm.onsubmit = validateLogin;
     }
@@ -20,6 +20,7 @@ async function init(){
         roomCode = JSON.parse(localStorage.getItem("roomCode"));
         roomData = JSON.parse(localStorage.getItem("roomData"));
         playerData = JSON.parse(localStorage.getItem("playerData"));
+        phrase = JSON.parse(localStorage.getItem("phrase"));
         console.log({roomCode, playerData, roomData});
         showPhrase();
         await getImages();
@@ -53,6 +54,7 @@ socket.on('roomData', (data) => {
         localStorage.setItem("roomCode", JSON.stringify(data.roomCode));
         localStorage.setItem("playerName", JSON.stringify(data.playerName));
         localStorage.setItem("playerData", JSON.stringify(data.playerData));
+        localStorage.setItem("phrase", JSON.stringify(data.phrase));
         // Se il login è valido, reindirizza al gioco
         window.location.href = `/room/${data.roomCode}`;
     } else {
@@ -62,7 +64,7 @@ socket.on('roomData', (data) => {
 });
 
 function showPhrase(){
-    phrase.innerHTML = "UAAAAAA";
+    phraseElement.innerHTML = phrase;
 }
 
 function addImage(image,name, index){
@@ -102,5 +104,5 @@ async function getImages(){
 function imageSelected(event){
     let element = event.target;
     console.log(element.dataset.image);
-    socket.emit('cardSelected', window.roomCode, element.dataset.image);
+    socket.emit('cardSelected', roomCode, element.dataset.image);
 }

@@ -18,6 +18,8 @@ exports.init = function(io) {
                 };
             }
 
+            console.log(rooms);
+
             // Aggiungiamo il giocatore alla stanza
             rooms[roomCode].players.push({ id: socket.id, name: playerName, drawedImages: [], score: 0 });
             socket.join(roomCode);
