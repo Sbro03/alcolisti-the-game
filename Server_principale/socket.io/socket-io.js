@@ -1,6 +1,6 @@
+let rooms = {};
 
 exports.init = function(io) {
-    const rooms = {};
 
     io.on('connection', (socket) => {
         console.log(`Nuovo client connesso: ${socket.id}`);
@@ -18,11 +18,14 @@ exports.init = function(io) {
                 };
             }
 
-            console.log(rooms);
-
             // Aggiungiamo il giocatore alla stanza
+            //Each player will have this data
             rooms[roomCode].players.push({ id: socket.id, name: playerName, drawedImages: [], score: 0 });
-            socket.join(roomCode);
+            try{
+                socket.join(roomCode);
+            }catch (e) {
+                console.log(e);
+            }
 
             console.log(`Giocatore ${playerName} si è unito alla stanza ${roomCode}`);
 
@@ -30,6 +33,7 @@ exports.init = function(io) {
             socket.emit('roomData', {
                 roomCode,
                 playerName,
+                roomData: rooms[roomCode],
                 playerData: rooms[roomCode].players.find((p) => p.id === socket.id),
                 success: "ok",
                 players: rooms[roomCode].players,
@@ -41,14 +45,18 @@ exports.init = function(io) {
             io.to(roomCode).emit('updatePlayers', rooms[roomCode].players);
         });
 
+        //This event is used to update room data through socket.io
+        socket.on("roomData", (roomCode, roomData) => {
+            rooms[roomCode] = roomData;
+        })
+
         // Un giocatore seleziona una carta
         socket.on('cardSelected', (roomCode, image) => {
-            console.log("card selected: ", image);
             const room = rooms[roomCode];
             if (!room) return;
 
             // Aggiungiamo la carta selezionata alla lista delle carte scelte
-            room.selectedCards.push({ playerId: socket.id, image });
+            room.selectedCards.push({ playerId: socket.id,  image});
 
             console.log(`Carta selezionata in stanza ${roomCode}: ${image}`);
 
@@ -101,6 +109,7 @@ exports.init = function(io) {
             });
         });
 
+        //TODO: We have to do something about refreshing/changing page because it disconnects players
         // Gestione disconnessione del giocatore
         socket.on('disconnect', () => {
             console.log(`Client disconnesso: ${socket.id}`);

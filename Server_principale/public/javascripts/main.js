@@ -8,8 +8,8 @@ let roomData;
 let playerData;
 let phrase;
 
+//This function load every global variable and the content (if needed)
 async function init(){
-    console.log(window.roomCode);
     loginForm = document.getElementById('joinRoomForm');
     imageContainer = document.getElementById('imageContainer');
     phraseElement = document.getElementById('phrase');
@@ -19,6 +19,7 @@ async function init(){
     if(imageContainer){
         roomCode = JSON.parse(localStorage.getItem("roomCode"));
         roomData = JSON.parse(localStorage.getItem("roomData"));
+        socket.emit("roomData", roomCode, roomData);
         playerData = JSON.parse(localStorage.getItem("playerData"));
         phrase = JSON.parse(localStorage.getItem("phrase"));
         console.log({roomCode, playerData, roomData});
@@ -30,6 +31,31 @@ async function init(){
         })
     }
 }
+
+//SOCKET EVENTS
+
+// Gestisci la risposta del server dopo il login
+socket.on('roomData', (data) => {
+    if (data.success) {
+        console.log(data);
+        localStorage.setItem("roomData", JSON.stringify(data.roomData));
+        localStorage.setItem("roomCode", JSON.stringify(data.roomCode));
+        localStorage.setItem("playerName", JSON.stringify(data.playerName));
+        localStorage.setItem("playerData", JSON.stringify(data.playerData));
+        localStorage.setItem("phrase", JSON.stringify(data.phrase));
+        // Se il login è valido, reindirizza al gioco
+        window.location.href = `/room/${data.roomCode}`;
+    } else {
+        // Mostra un messaggio di errore
+        alert(data.message);
+    }
+});
+
+socket.on("showSelectedCards", (data) => {
+    console.log(data);
+})
+
+//CLIENT-SIDE FUNCTIONS
 
 function validateLogin(event) {
     event.preventDefault();
@@ -47,21 +73,6 @@ function validateLogin(event) {
     socket.emit('joinRoom', roomCode, playerName);
 }
 
-// Gestisci la risposta del server dopo il login
-socket.on('roomData', (data) => {
-    if (data.success) {
-        console.log(data);
-        localStorage.setItem("roomCode", JSON.stringify(data.roomCode));
-        localStorage.setItem("playerName", JSON.stringify(data.playerName));
-        localStorage.setItem("playerData", JSON.stringify(data.playerData));
-        localStorage.setItem("phrase", JSON.stringify(data.phrase));
-        // Se il login è valido, reindirizza al gioco
-        window.location.href = `/room/${data.roomCode}`;
-    } else {
-        // Mostra un messaggio di errore
-        alert(data.message);
-    }
-});
 
 function showPhrase(){
     phraseElement.innerHTML = phrase;
@@ -73,7 +84,7 @@ function addImage(image,name, index){
                 <div class="card bg-dark text-light shadow-sm">
                     <img src="data:image/jpeg;base64,${image}" class="card-img-top" alt="Immagine ${index + 1}">
                     <div class="card-body text-center">
-                        <button class="btn btn-outline-primary w-100 select-card" data-image="${name}">
+                        <button class="btn btn-outline-primary w-100 select-card" data-image-name="${name}" data-image-content="${image}">
                             Seleziona
                         </button>
                     </div>
@@ -85,9 +96,15 @@ function addImage(image,name, index){
 function generateImages(list){
     list.forEach((blob,index) => {
         const cardHtml = addImage(blob.fileContent, blob.fileName, index);
+        playerData.drawedImages.push(blob.fileName);
         // Append the generated card to the container
         imageContainer.insertAdjacentHTML('beforeend', cardHtml);
     })
+
+    //Updating roomData
+    let playerIndex = roomData.players.findIndex((p) => p.id === playerData.id);
+    roomData.players[playerIndex] = playerData;
+    socket.emit("roomData", roomCode, roomData);
 }
 
 //Funzione che manda richieste di immagini al backend
@@ -103,6 +120,5 @@ async function getImages(){
 
 function imageSelected(event){
     let element = event.target;
-    console.log(element.dataset.image);
-    socket.emit('cardSelected', roomCode, element.dataset.image);
+    socket.emit('cardSelected', roomCode, element.dataset);
 }
