@@ -4,7 +4,8 @@ let images = [];
 let imageContainer;
 let selectBtns;
 let roomCode;
-let gameData;
+let roomData;
+let playerData;
 let phrase;
 
 async function init(){
@@ -16,10 +17,13 @@ async function init(){
         loginForm.onsubmit = validateLogin;
     }
     if(imageContainer){
+        roomCode = JSON.parse(localStorage.getItem("roomCode"));
+        roomData = JSON.parse(localStorage.getItem("roomData"));
+        playerData = JSON.parse(localStorage.getItem("playerData"));
+        console.log({roomCode, playerData, roomData});
         showPhrase();
         await getImages();
         selectBtns = document.querySelectorAll(".select-card");
-        console.log(selectBtns);
         selectBtns.forEach(btn => {
             btn.onclick = imageSelected;
         })
@@ -45,6 +49,10 @@ function validateLogin(event) {
 // Gestisci la risposta del server dopo il login
 socket.on('roomData', (data) => {
     if (data.success) {
+        console.log(data);
+        localStorage.setItem("roomCode", JSON.stringify(data.roomCode));
+        localStorage.setItem("playerName", JSON.stringify(data.playerName));
+        localStorage.setItem("playerData", JSON.stringify(data.playerData));
         // Se il login è valido, reindirizza al gioco
         window.location.href = `/room/${data.roomCode}`;
     } else {

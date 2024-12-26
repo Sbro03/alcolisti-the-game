@@ -19,7 +19,7 @@ exports.init = function(io) {
             }
 
             // Aggiungiamo il giocatore alla stanza
-            rooms[roomCode].players.push({ id: socket.id, name: playerName, score: 0 });
+            rooms[roomCode].players.push({ id: socket.id, name: playerName, drawedImages: [], score: 0 });
             socket.join(roomCode);
 
             console.log(`Giocatore ${playerName} si è unito alla stanza ${roomCode}`);
@@ -27,6 +27,8 @@ exports.init = function(io) {
             // Inviamo i dati della stanza al giocatore appena entrato
             socket.emit('roomData', {
                 roomCode,
+                playerName,
+                playerData: rooms[roomCode].players.find((p) => p.id === socket.id),
                 success: "ok",
                 players: rooms[roomCode].players,
                 phrase: rooms[roomCode].phrase,
