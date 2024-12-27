@@ -6,12 +6,12 @@ let selectBtns;
 let roomCode;
 let roomData;
 let playerData;
+let selectedImages; //Images selected by all the players
 let phrase;
 let loginValidationFlag = false;
 
 //This function load every global variable and the content (if needed)
 async function init(){
-    loginValidationFlag = localStorage.getItem('loginValidationFlag');
     loginForm = document.getElementById('joinRoomForm');
     imageContainer = document.getElementById('imageContainer');
     phraseElement = document.getElementById('phrase');
@@ -19,6 +19,7 @@ async function init(){
         loginForm.onsubmit = validateLogin;
     }
     if(imageContainer){
+        loginValidationFlag = localStorage.getItem('loginValidationFlag');
         roomCode = JSON.parse(localStorage.getItem("roomCode"));
         roomData = JSON.parse(localStorage.getItem("roomData"));
         socket.emit("roomData", roomCode, roomData);
@@ -60,7 +61,10 @@ socket.on('roomData', (data) => {
 });
 
 socket.on("showSelectedCards", (data) => {
-    console.log(data);
+    alert("Tutti i giocatori hanno fatto la loro scelta");
+    selectedImages = data.map(obj => obj.image);
+    console.log(data, selectedImages);
+    showSelected();
 })
 
 //CLIENT-SIDE FUNCTIONS
@@ -92,7 +96,7 @@ function addImage(image,name, index){
                 <div class="card bg-dark text-light shadow-sm">
                     <img src="data:image/jpeg;base64,${image}" class="card-img-top" alt="Immagine ${index + 1}">
                     <div class="card-body text-center">
-                        <button class="btn btn-outline-primary w-100 select-card" data-image-name="${name}" data-image-content="${image}">
+                        <button class="btn btn-outline-primary w-100 select-card" data-file-name="${name}" data-file-content="${image}">
                             Seleziona
                         </button>
                     </div>
@@ -101,9 +105,36 @@ function addImage(image,name, index){
         `;
 }
 
-function generateImages(list){
+function addVote(image,name, index){
+    return `
+            <div class="col-lg-3 col-md-4 col-sm-6 col-12 mb-4">
+                <div class="card bg-dark text-light shadow-sm">
+                <img src="data:image/jpeg;base64,${image}" class="card-img-top" alt="Immagine ${index + 1}">
+                    <div class="card-body text-center">
+                        <!-- Primo pulsante: verde, testo "Seleziona vincitore" -->
+                        <button class="btn btn-outline-success w-100 select-card"
+                                data-file-name="${name}" data-file-content="${image}">
+                            Seleziona vincitore
+                        </button>
+                        <!-- Secondo pulsante: rosso, testo "Seleziona perdente" -->
+                        <button class="btn btn-outline-danger w-100 mt-2 select-card"
+                                data-file-name="${name}" data-file-content="${image}">
+                            Seleziona perdente
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+}
+
+function generateImages(list, mode){
     list.forEach((blob,index) => {
-        const cardHtml = addImage(blob.fileContent, blob.fileName, index);
+        let cardHtml;
+        if(!mode || mode === "default"){
+            cardHtml = addImage(blob.fileContent, blob.fileName, index);
+        }else if(mode === "vote"){
+            cardHtml = addVote(blob.fileContent, blob.fileName, index);
+        }
         playerData.drawedImages.push(blob.fileName);
         // Append the generated card to the container
         imageContainer.insertAdjacentHTML('beforeend', cardHtml);
@@ -128,5 +159,10 @@ async function getImages(){
 
 function imageSelected(event){
     let element = event.target;
-    socket.emit('cardSelected', roomCode, element.dataset);
+    socket.emit('cardSelected', roomCode, playerData, element.dataset);
+}
+
+function showSelected(){
+    imageContainer.replaceChildren();
+    generateImages(selectedImages, "vote");
 }

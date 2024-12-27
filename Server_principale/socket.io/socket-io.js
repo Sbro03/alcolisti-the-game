@@ -84,14 +84,13 @@ exports.init = function(io) {
         })
 
         //Event called if a player select any card
-        socket.on('cardSelected', (roomCode, image) => {
+        socket.on('cardSelected', (roomCode, player, image) => {
             const room = rooms[roomCode];
             if (!room) return;
-
             // Aggiungiamo la carta selezionata alla lista delle carte scelte
-            room.selectedCards.push({ playerId: socket.id,  image});
+            room.selectedCards.push({ playerId: socket.id, playerName: player.name,  image});
 
-            console.log(`Carta selezionata in stanza ${roomCode}: ${image}`);
+            console.log(`Carta selezionata in stanza ${roomCode} da ${player.name}: ${image}`);
 
             // Se tutti i giocatori hanno selezionato una carta, mostriamo le carte
             if (room.selectedCards.length === room.players.length) {
@@ -142,13 +141,14 @@ exports.init = function(io) {
             });
         });
 
-        //TODO: We have to do something about refreshing/changing page because it disconnects players
+        //TODO: rimuovere dati di gioco con la disconnessione
         // Gestione disconnessione del giocatore
         socket.on('disconnect', () => {
             console.log(`Client disconnesso: ${socket.id}`);
 
             // Rimuoviamo il giocatore da tutte le stanze
             for (const roomCode in rooms) {
+                console.log(rooms);
                 const room = rooms[roomCode];
                 const playerIndex = room.players.findIndex((p) => p.id === socket.id);
 
