@@ -7,9 +7,11 @@ let roomCode;
 let roomData;
 let playerData;
 let phrase;
+let loginValidationFlag = false;
 
 //This function load every global variable and the content (if needed)
 async function init(){
+    loginValidationFlag = localStorage.getItem('loginValidationFlag');
     loginForm = document.getElementById('joinRoomForm');
     imageContainer = document.getElementById('imageContainer');
     phraseElement = document.getElementById('phrase');
@@ -22,7 +24,10 @@ async function init(){
         socket.emit("roomData", roomCode, roomData);
         playerData = JSON.parse(localStorage.getItem("playerData"));
         phrase = JSON.parse(localStorage.getItem("phrase"));
-        console.log({roomCode, playerData, roomData});
+        if (playerData.id && roomCode && playerData.name) {
+            // Attempt to reconnect to the room
+            socket.emit('reconnectToRoom', playerData.id, roomCode);
+        }
         showPhrase();
         await getImages();
         selectBtns = document.querySelectorAll(".select-card");
@@ -43,8 +48,11 @@ socket.on('roomData', (data) => {
         localStorage.setItem("playerName", JSON.stringify(data.playerName));
         localStorage.setItem("playerData", JSON.stringify(data.playerData));
         localStorage.setItem("phrase", JSON.stringify(data.phrase));
-        // Se il login è valido, reindirizza al gioco
-        window.location.href = `/room/${data.roomCode}`;
+        if(!loginValidationFlag){
+            loginValidationFlag = data.success;
+            localStorage.setItem("loginValidationFlag", JSON.stringify(loginValidationFlag));
+            window.location.href = `/room/${data.roomCode}`;
+        }
     } else {
         // Mostra un messaggio di errore
         alert(data.message);

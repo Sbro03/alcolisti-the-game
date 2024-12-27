@@ -5,6 +5,39 @@ exports.init = function(io) {
     io.on('connection', (socket) => {
         console.log(`Nuovo client connesso: ${socket.id}`);
 
+        socket.on('reconnectToRoom', (playerId, roomCode) => {
+            const room = rooms[roomCode];
+            if (!room) {
+                socket.emit('reconnectFailed', 'Room does not exist');
+                return;
+            }
+
+            const player = room.players.find((p) => p.id === playerId);
+            if (player) {
+                player.id = socket.id; // Update socket ID for the reconnected player
+                socket.join(roomCode);
+                console.log(`Player ${player.name} reconnected to room ${roomCode}`);
+
+                // Send updated room data to the reconnected player
+                socket.emit('roomData', {
+                    roomCode,
+                    playerName: player.name,
+                    roomData: room,
+                    playerData: player,
+                    success: "reconnected",
+                    players: room.players,
+                    phrase: room.phrase,
+                    images: room.images,
+                });
+
+                // Notify all players in the room about the reconnection
+                io.to(roomCode).emit('updatePlayers', room.players);
+            } else {
+                socket.emit('reconnectFailed', 'Player not found in the room');
+            }
+        });
+
+
         // Un giocatore si unisce a una stanza
         socket.on('joinRoom', (roomCode, playerName) => {
             if (!rooms[roomCode]) {
@@ -50,7 +83,7 @@ exports.init = function(io) {
             rooms[roomCode] = roomData;
         })
 
-        // Un giocatore seleziona una carta
+        //Event called if a player select any card
         socket.on('cardSelected', (roomCode, image) => {
             const room = rooms[roomCode];
             if (!room) return;
@@ -66,7 +99,7 @@ exports.init = function(io) {
             }
         });
 
-        // Un giocatore vota una carta
+        //Once a player selected a card, it's time to vote the most and least funny card
         socket.on('vote', ({ roomCode, image }) => {
             const room = rooms[roomCode];
             if (!room) return;
