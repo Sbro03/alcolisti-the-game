@@ -46,9 +46,14 @@ exports.init = function(io) {
                     players: [],
                     phrase: "Esempio di frase divertente", // Puoi aggiornare dinamicamente
                     images: [], // Popoleremo con le immagini caricate dal server secondario
+                    //idk if images can be useful, suggested by chatGPT
                     selectedCards: [],
                     votes: {},
                 };
+            }else{
+                if(rooms[roomCode].selectedCards.length > 0){
+                    socket.emit("roomData", {message: "This room is full"});
+                }
             }
 
             // Aggiungiamo il giocatore alla stanza
@@ -63,7 +68,7 @@ exports.init = function(io) {
             console.log(`Giocatore ${playerName} si è unito alla stanza ${roomCode}`);
 
             // Inviamo i dati della stanza al giocatore appena entrato
-            socket.emit('roomData', {
+            io.to(roomCode).emit('roomData', {
                 roomCode,
                 playerName,
                 roomData: rooms[roomCode],
@@ -158,6 +163,16 @@ exports.init = function(io) {
 
                     // Aggiorniamo i giocatori rimasti nella stanza
                     io.to(roomCode).emit('updatePlayers', room.players);
+
+                    //Updating room data
+                    io.to(roomCode).emit('roomData', {
+                        roomCode,
+                        roomData: room,
+                        success: "ok",
+                        players: room.players,
+                        phrase: room.phrase,
+                        images: room.images,
+                    });
 
                     // Se non ci sono più giocatori, eliminiamo la stanza
                     if (room.players.length === 0) {

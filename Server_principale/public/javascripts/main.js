@@ -112,12 +112,12 @@ function addVote(image,name, index){
                 <img src="data:image/jpeg;base64,${image}" class="card-img-top" alt="Immagine ${index + 1}">
                     <div class="card-body text-center">
                         <!-- Primo pulsante: verde, testo "Seleziona vincitore" -->
-                        <button class="btn btn-outline-success w-100 select-card"
+                        <button class="btn btn-outline-success w-100 vote-win-card"
                                 data-file-name="${name}" data-file-content="${image}">
                             Seleziona vincitore
                         </button>
                         <!-- Secondo pulsante: rosso, testo "Seleziona perdente" -->
-                        <button class="btn btn-outline-danger w-100 mt-2 select-card"
+                        <button class="btn btn-outline-danger w-100 mt-2 vote-lose-card"
                                 data-file-name="${name}" data-file-content="${image}">
                             Seleziona perdente
                         </button>
@@ -160,6 +160,13 @@ async function getImages(){
 function imageSelected(event){
     let element = event.target;
     socket.emit('cardSelected', roomCode, playerData, element.dataset);
+    selectBtns.forEach((btn) => {
+        if(btn != element){
+            btn.disabled = true;
+        }
+    })
+    element.classList.add("active");
+    element.innerHTML = "Immagine selezionata";
 }
 
 function showSelected(){
