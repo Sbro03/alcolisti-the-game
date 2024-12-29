@@ -9,9 +9,13 @@ let playerData;
 let selectedImages; //Images selected by all the players
 let phrase;
 let loginValidationFlag = false;
+let voteLoseBtns;
+let voteWinnBtns;
+let selectingWinAndLose = false;
 
 //This function load every global variable and the content (if needed)
 async function init(){
+    console.log(socket);
     loginForm = document.getElementById('joinRoomForm');
     imageContainer = document.getElementById('imageContainer');
     phraseElement = document.getElementById('phrase');
@@ -42,7 +46,7 @@ async function init(){
 
 // Gestisci la risposta del server dopo il login
 socket.on('roomData', (data) => {
-    if (data.success) {
+    if (data.state) {
         console.log(data);
         localStorage.setItem("roomData", JSON.stringify(data.roomData));
         localStorage.setItem("roomCode", JSON.stringify(data.roomCode));
@@ -172,4 +176,27 @@ function imageSelected(event){
 function showSelected(){
     imageContainer.replaceChildren();
     generateImages(selectedImages, "vote");
+    //Initialising lists for winner and loser buttons
+    voteWinnBtns = document.querySelectorAll(".vote-win-card");
+    voteWinnBtns.forEach(btn => {
+        btn.onclick = voteCard
+    });
+    voteLoseBtns = document.querySelectorAll(".vote-lose-card");
+    voteLoseBtns.forEach(btn => {
+        btn.onclick = voteCard
+    });
+    console.log(voteLoseBtns, voteWinnBtns);
+}
+
+function voteCard(event){
+    let {classList} = event.target;
+    if(classList.contains("vote-win-card")){
+        //In case the player clicked on "winner" button
+        console.log("winner");
+        socket.emit("vote", roomCode, event.target.dataset, "winner");
+    }else{
+        //In case the player clicked on "loser" button
+        console.log("loser");
+        socket.emit("vote", roomCode, event.target.dataset, "loser");
+    }
 }

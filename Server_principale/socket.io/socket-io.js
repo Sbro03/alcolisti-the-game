@@ -6,6 +6,8 @@ exports.init = function(io) {
         console.log(`Nuovo client connesso: ${socket.id}`);
 
         socket.on('reconnectToRoom', (playerId, roomCode) => {
+            //IDK once the client disconnects from the server (cleaning rooms data properly),
+            // rooms has the previous data. Check with debugger
             const room = rooms[roomCode];
             if (!room) {
                 socket.emit('reconnectFailed', 'Room does not exist');
@@ -24,7 +26,7 @@ exports.init = function(io) {
                     playerName: player.name,
                     roomData: room,
                     playerData: player,
-                    success: "reconnected",
+                    state: "reconnected",
                     players: room.players,
                     phrase: room.phrase,
                     images: room.images,
@@ -73,7 +75,7 @@ exports.init = function(io) {
                 playerName,
                 roomData: rooms[roomCode],
                 playerData: rooms[roomCode].players.find((p) => p.id === socket.id),
-                success: "ok",
+                state: "ok",
                 players: rooms[roomCode].players,
                 phrase: rooms[roomCode].phrase,
                 images: rooms[roomCode].images,
@@ -96,30 +98,58 @@ exports.init = function(io) {
             room.selectedCards.push({ playerId: socket.id, playerName: player.name,  image});
 
             console.log(`Carta selezionata in stanza ${roomCode} da ${player.name}: ${image}`);
-
             // Se tutti i giocatori hanno selezionato una carta, mostriamo le carte
+
             if (room.selectedCards.length === room.players.length) {
+                console.log("tutti i giocatori hanno scelto");
+                io.to(roomCode).emit('roomData', {
+                    roomCode,
+                    playerName: player.name,
+                    roomData: room,
+                    playerData: player,
+                    state: "cards selected",
+                    players: room.players,
+                    phrase: room.phrase,
+                    images: room.images,
+                    selectedCards: room.selectedCards
+                });
                 io.to(roomCode).emit('showSelectedCards', room.selectedCards);
             }
         });
 
         //Once a player selected a card, it's time to vote the most and least funny card
-        socket.on('vote', ({ roomCode, image }) => {
+        socket.on('vote', (roomCode, image, type) => {
             const room = rooms[roomCode];
             if (!room) return;
 
-            // Assegniamo un voto alla carta
-            if (!room.votes[image]) {
-                room.votes[image] = 0;
+            // Controlliamo se il tipo di voto è "winner" o "loser"
+            if (type !== 'winner' && type !== 'loser') return;
+
+            // Inizializziamo i conteggi dei voti se non esistono
+            if (!room.votes[type]) {
+                room.votes[type] = {};
             }
-            room.votes[image]++;
+            if (!room.votes[type][image.fileName]) {
+                room.votes[type][image.fileName] = 0;
+            }
 
-            console.log(`Voto ricevuto per immagine ${image} nella stanza ${roomCode}`);
+            // Incrementiamo il voto per l'immagine
+            room.votes[type][image.fileName]++;
 
-            // Se tutti i giocatori hanno votato, calcoliamo il vincitore
-            if (Object.keys(room.votes).length === room.players.length) {
-                const winner = calculateWinner(room);
-                io.to(roomCode).emit('roundEnded', { winner });
+            console.log(`Voto ricevuto per ${type} immagine ${image} nella stanza ${roomCode}`);
+
+            // Controlliamo se tutti i giocatori hanno votato sia per il vincitore che per il perdente
+            const totalVotes = Object.keys(room.votes.winner || {}).length + Object.keys(room.votes.loser || {}).length;
+            if (totalVotes === room.players.length * 2) {
+                //TODO: Controllare con il debugger questa parte del voto
+                const winnerImage = calculateWinner(room.votes.winner);
+                const loserImage = calculateLoser(room.votes.loser);
+
+                const winner = room.selectedCards.find((card) => card.image.fileName === winnerImage);
+                const loser = room.selectedCards.find((card) => card.image.fileName === loserImage);
+                console.log(winner, loser);
+
+                io.to(roomCode).emit('roundEnded', { winner, loser });
 
                 // Resettiamo i dati della stanza per il prossimo round
                 room.selectedCards = [];
@@ -127,7 +157,7 @@ exports.init = function(io) {
             }
         });
 
-        // Un giocatore inizia il prossimo round
+// Un giocatore inizia il prossimo round
         socket.on('nextRound', (roomCode) => {
             const room = rooms[roomCode];
             if (!room) return;
@@ -148,9 +178,7 @@ exports.init = function(io) {
 
         //TODO: rimuovere dati di gioco con la disconnessione
         // Gestione disconnessione del giocatore
-        socket.on('disconnect', () => {
-            console.log(`Client disconnesso: ${socket.id}`);
-
+        socket.on('disconnecting', () => {
             // Rimuoviamo il giocatore da tutte le stanze
             for (const roomCode in rooms) {
                 console.log(rooms);
@@ -164,44 +192,37 @@ exports.init = function(io) {
                     // Aggiorniamo i giocatori rimasti nella stanza
                     io.to(roomCode).emit('updatePlayers', room.players);
 
-                    //Updating room data
-                    io.to(roomCode).emit('roomData', {
-                        roomCode,
-                        roomData: room,
-                        success: "ok",
-                        players: room.players,
-                        phrase: room.phrase,
-                        images: room.images,
-                    });
-
                     // Se non ci sono più giocatori, eliminiamo la stanza
                     if (room.players.length === 0) {
                         delete rooms[roomCode];
                         console.log(`Stanza ${roomCode} eliminata`);
                     }
                 }
+                //Updating room data anyway
+                io.to(roomCode).emit('roomData', {
+                    roomCode,
+                    roomData: room,
+                    state: "disconnecting",
+                    players: room.players,
+                    phrase: room.phrase,
+                    images: room.images,
+                });
             }
         });
+        socket.on("disconnect", () => {
+            console.log(`Client disconnesso: ${socket.id}`);
+        })
     });
 
-// Funzione per calcolare il vincitore del round
-    function calculateWinner(room) {
-        let maxVotes = 0;
-        let winner = null;
+    //This function calculates the winner
+    function calculateWinner(winnerVotes) {
+        // Trova l'immagine con il maggior numero di voti per il vincitore
+        return Object.keys(winnerVotes).reduce((a, b) => (winnerVotes[a] > winnerVotes[b] ? a : b));
+    }
 
-        for (const image in room.votes) {
-            if (room.votes[image] > maxVotes) {
-                maxVotes = room.votes[image];
-                winner = room.players.find((p) => p.id === room.selectedCards.find((c) => c.image === image).playerId);
-            }
-        }
-
-        if (winner) {
-            winner.score++; // Incrementiamo il punteggio del vincitore
-            console.log(`Vincitore del round: ${winner.name} con ${maxVotes} voti`);
-            return winner.name;
-        }
-
-        return "Nessun vincitore";
+    //This function calculates the loser
+    function calculateLoser(loserVotes) {
+        // Trova l'immagine con il maggior numero di voti per il perdente
+        return Object.keys(loserVotes).reduce((a, b) => (loserVotes[a] > loserVotes[b] ? a : b));
     }
 }
